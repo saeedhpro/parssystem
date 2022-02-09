@@ -1,0 +1,55 @@
+version: "3"
+services:
+  rabbitmq:
+    image: "rabbitmq:3-management-alpine"
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "status" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - pars
+  redis:
+    image: "redis:6-alpine"
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - pars
+  main:
+    container_name: api_gateway
+    build:
+      context: ./main
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    env_file:
+      - ./main/.env
+    depends_on:
+      - rabbitmq
+    networks:
+      - pars
+  email:
+    container_name: api_email
+    build:
+      context: ./email
+      dockerfile: Dockerfile
+    ports:
+      - 2311:2311
+    env_file:
+      - ./email/.env
+    depends_on:
+      - rabbitmq
+    networks:
+      - pars
+networks:
+  pars:
+    external: true
+    driver: bridge
